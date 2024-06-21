@@ -8,10 +8,8 @@ import os
 import datetime
 
 
-
 current_time = datetime.datetime.now()
 print("Time at start of script: {}".format(current_time))
-
 
 base_dir = os.path.abspath("..")
 output_dir = os.path.join(base_dir, "output")
@@ -69,8 +67,6 @@ def system_with_feedback(t, y, mu_U, mu_W, mu_Y, gamma, gamma_U, gamma_W, eta_pl
     return [dU_dt, dW_dt, dC_dt, dY_dt]
 
 
-
-
 def system_without_feedback(t, y, mu_U, mu_W, mu_Y, gamma, gamma_U, gamma_W, eta_plus, eta_0, eta_minus, gamma_Y, mu_Ystar, gamma_Ystar, W_ss):
     """
     Models a antithetic feedback motif without feedback as a system of ordinary differential equations (ODEs). The feedback from Y to U that was present in the original system
@@ -121,22 +117,6 @@ def system_without_feedback(t, y, mu_U, mu_W, mu_Y, gamma, gamma_U, gamma_W, eta
     return [dU_dt, dW_dt, dC_dt, dY_dt, dYstar_dt]
 
 
-
-
-#def calc_CoRa(Y_fad, Y_fad_NF):
-    """
-    Calculates co-ratio (CoRa)
-    """
-    CoRa_values = []
-    for i in range(len(Y_fad) - 1):
-        #CoRa = (np.log(Y_fad[i + 1]) - np.log(Y_fad[i])) / (np.log(Y_fad_NF[i + 1]) - np.log(Y_fad_NF[i]))
-        #CoRa = np.log(Y_fad[i + 1] / Y_fad[i]) / np.log(Y_fad_NF[i + 1] / Y_fad_NF[i + 1])          # FORMULA MAY NOT BE CORRECT YET!!!
-        CoRa = (np.log(Y_fad[i + 1]) - np.log(Y_fad[i])) / (np.log(Y_fad_NF[i + 1]) - np.log(Y_fad_NF[i]))
-        
-        CoRa_values.append(CoRa)
-    return CoRa_values
-
-
 def calc_CoRa_point(ss, ss_NF, ss_pp, ss_pp_NF):
     """
     Calculates co-ratio (CoRa) by comparing the original and post perturbation (pp) states of the feedback and no-feedback systems
@@ -157,17 +137,33 @@ def calc_CoRa_point(ss, ss_NF, ss_pp, ss_pp_NF):
     CoRa        :       float
         CoRa point
     """
-
-    CoRa = (np.log(ss_pp) - np.log(ss)) / (np.log(ss_pp_NF) - np.log(ss_NF))
-
+    try:
+        if ss_NF == ss_pp_NF:
+            return float('nan')
+        CoRa = (np.log(ss_pp) - np.log(ss)) / (np.log(ss_pp_NF) - np.log(ss_NF))
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        CoRa = float('nan')
     return CoRa
 
 
-#def solve_system():
-
-
-
 def get_concentration_plot(sol_FB, sol_NF, title):
+    """
+    Plots the concentration values of the feedback and no-feedback systems over time.
+
+    Parameters
+    ----------
+    sol_FB              :           OdeSolution
+        Solution object from solving the ODEs for the feedback system
+    sol_NF              :           OdeSolution
+        Solution object from solving the ODEs for the no-feedback system
+    title               :           string
+        Title for the plot and filename
+    
+    Returns
+    -------
+    None
+    """
     print("entering plotting function")
     # Plot results
     plt.plot(sol_FB.t, sol_FB.y[0], label='U')
@@ -199,10 +195,26 @@ def get_concentration_plot(sol_FB, sol_NF, title):
 
 
 def get_CoRa_plot(perturbations, CoRa_values, title):
+    """
+    Plots the CoRa (Concentration Ratio) values against perturbations.
+
+    Parameters
+    ----------
+    perturbations       :           list or numpy array
+        Values of perturbations (mu_Y values) used in the analysis
+    CoRa_values         :           list or numpy array
+        Calculated CoRa values corresponding to the perturbations
+    title               :           string
+        Title for the plot and filename
+    
+    Returns
+    -------
+    None
+    """
     print("entering CoRa plot function")
     # Plot results
     plt.plot(perturbations, CoRa_values)
-    plt.xlabel('Perturbation')
+    plt.xlabel('mu_Y value')
     plt.ylabel('CoRa Value')
     plt.title(title)
     plt.savefig(os.path.join(output_dir, "{}.png".format(title)))
@@ -210,8 +222,47 @@ def get_CoRa_plot(perturbations, CoRa_values, title):
     plt.close()
 
 
+def get_ss(t_span, args_FB, extra_args_NF, y0, y0_NF, t_eval, title):
+    """
+    Calculates the steady-state values of the feedback and locally analogous no-feedback systems, after evaluation time t_eval.
 
-def get_ss(t_span, args_FB, extra_args_NF, y0, y0_NF, t_eval):
+    Parameters
+    ----------
+    t_span              :           tuple
+        begin and end time points of evaluation range
+    args_FB             :           list
+        parameter values for the feedback (and no-feedback) system
+    extra_args_NF       :           list
+        extra parameter values for the no-feedback system
+    y0                  :           list
+        initial conditions for feedback system
+    y0_NF               :           list
+        initial conditions for no-feedback system (includes one extra initial condition for YStar)
+    t_eval              :           numpy array
+        time points over which to analyze ODE
+    title               :           string
+        for plot and file name
+    
+    Returns
+    -------
+    Y_values_FB_system  :           numpy array
+        Y values over time for the feedback system
+    Y_values_NF_system  :           numpy array
+        Y values over time for the no-feedback system
+    U_ss                :           float
+        Steady-state value of U in the feedback system
+    W_ss                :           float
+        Steady-state value of W in the feedback system
+    C_ss                :           float
+        Steady-state value of C in the feedback system
+    Y_ss                :           float
+        Steady-state value of Y in the feedback system
+    Y_ss_NF             :           float
+        Steady-state value of Y in the no-feedback system
+    Ystar_ss_NF         :           float
+        Steady-state value of YStar in the no-feedback system
+    """
+    print("Entering function >get_ss< xxxxxxxxxxxxxxxxxxxxxxxxxx")
 
     args_for_FB = tuple(args_FB)
     # Solve ODEs system with feedback
@@ -245,51 +296,60 @@ def get_ss(t_span, args_FB, extra_args_NF, y0, y0_NF, t_eval):
     Y_values_FB_system = sol_FB.y[3]
     Y_values_NF_system = sol_NF.y[3]
 
-    title = ""
+    #title = ""
     print("We will plot now")
     get_concentration_plot(sol_FB, sol_NF, title)
 
+    print("End of function >get_ss< xxxxxxxxxxxxxxxxxxxxxxxxxx")
     return Y_values_FB_system, Y_values_NF_system, U_ss, W_ss, C_ss, Y_ss, Y_ss_NF, Ystar_ss_NF
 
 
-def check_steady_state(Y_ss, Y_ss_NF, threshold = 0.99):
-    print("Entering function >check_steady_state< ")
+def check_steady_state(Y_ss, Y_ss_NF, ss_threshold = 0.9):
+    """
+    Checks whether the steady-state value of the no-feedback system (Y_ss_NF) falls within an acceptable range 
+    around the steady-state value of the feedback system (Y_ss), based on a given threshold.
+
+    Parameters
+    ----------
+    Y_ss                :           float
+        Steady-state value of Y in the feedback system
+    Y_ss_NF             :           float
+        Steady-state value of Y in the no-feedback system
+    ss_threshold        :           float, optional
+        Threshold for determining the acceptable range for steady-state comparison, default is 0.9
+
+    Returns
+    -------
+    bool
+        True if Y_ss_NF falls within the acceptable range of Y_ss, False otherwise
+    """
+    print("Entering function >check_steady_state< ---------------------------")
     # TO DO: Figure out how to select the appropriate range in a mathematically correct and systematic way
-    bottom_range = threshold * Y_ss
-    top_range = (1/threshold) * Y_ss
+    print("The value of the Y_ss variable here is {}".format(Y_ss))
+    print("The value of the Y_ss_NF variable here is {}".format(Y_ss_NF))
+    print(type(Y_ss))
+    print(type(Y_ss_NF))
+
+    Y_ss = np.float64(Y_ss)
+    ss_threshold = np.float64(ss_threshold)
+
+    bottom_range = ss_threshold * Y_ss
+    top_range = (1/ss_threshold) * Y_ss
 
     print(Y_ss)
     print(Y_ss_NF)
+    print("The value of the Y_ss_NF variable here is {}".format(Y_ss_NF))
 
-    if Y_ss_NF > bottom_range and Y_ss_NF < top_range:
+    if bottom_range < Y_ss_NF < top_range:
         print("YES!")
-
-    #return ss_FB, ss_NF
-
-"""
-def get_ss_refined(t_span, args_FB, extra_args_NF, y0, y0_NF, t_eval):
-
-    # Now we solve again, but using the steady state values as the initial conditions
-
-    # Solve ODEs system with feedback
-    sol_FB = solve_ivp(system_with_feedback, t_span, steady_state_conditions, args=(mu_U, mu_W, current_mu_Y_value, gamma, gamma_U, gamma_W, eta_plus, eta_0, eta_minus, gamma_Y), t_eval=t_eval)
-
-    Ystar_ss = Y_ss
-    #steady_state_conditions_NF = steady_state_conditions.append(Ystar_ss)
+        print("End of function >check_steady_state< ---------------------------")
+        return True
+    else:
+        print("NO!")
+        print("End of function >check_steady_state< ---------------------------")
+        return False
 
 
-    # Solve system without feedback
-    sol_NF = solve_ivp(system_without_feedback, t_span, steady_state_conditions_NF, args=(mu_U, mu_W, current_mu_Y_value, gamma, gamma_U, gamma_W, eta_plus, eta_0, eta_minus, gamma_Y, mu_Ystar, gamma_Ystar, W_ss), t_eval=t_eval)
-
-
-    Y_values_FB_system = sol_FB.y[3]
-    Y_values_NF_system = sol_NF.y[3]
-
-
-
-    title_ss = "steady state"
-    print("We will plot now")
-    get_concentration_plot(sol_FB, sol_NF, title_ss)"""
 
 
 
@@ -297,16 +357,19 @@ def get_ss_refined(t_span, args_FB, extra_args_NF, y0, y0_NF, t_eval):
 
 def main():
     
+    ### --------------------- Part I - set initial conditions and parameter values --------------------- ###
+    print("### --------------------- Part I - set initial conditions and parameter values --------------------- ###")
+
     # Set initial conditions
-    U0 = 1.0
-    W0 = 1.0
-    C0 = 1.0
-    Y0 = 1.0
-    y0 = [U0, W0, C0, Y0]
+    U0_init = 1.0
+    W0_init = 1.0
+    C0_init = 1.0
+    Y0_init = 1.0
+    y0_init = [U0_init, W0_init, C0_init, Y0_init]
 
     # Extra initial condition Ystar for no-feedback network
-    Ystar0 = 1.0
-    y0_NF = [U0, W0, C0, Y0, Ystar0]
+    Ystar0_init = 1.0
+    y0_NF_init = [U0_init, W0_init, C0_init, Y0_init, Ystar0_init]
 
     # Time points where solution is computed. Make sure that the time span is large enough to reach steady state!!
     t_span = (0, 50000)  # from t=0 to t=10
@@ -328,29 +391,25 @@ def main():
     mu_Ystar = mu_Y #0.125 # Set equal to non-starred parameter
     gamma_Ystar = gamma_Y #1.0 # set equal to non-starred parameter
 
-    # Define range of mu_Y values
-    #mu_Y = [0.0001, 0.001, 0.01, 0.1, 1, 10, 100]
-
-    # Range of mu_Y values on a logarithmic scale
-    #mu_Y_values = np.logspace(-2, 2, 50)
-    #cora_values_list = []
-
     current_mu_Y_value = mu_Y
-    #for mu_Y_value in mu_Y_values:
-        
-    #current_mu_Y_value = mu_Y_value
 
 
 
 
+
+    ### --------------------- Part II - Calculate steady states before perutbation (bp) and check if the feedback and no-feedback systems reach the same steady states (ss) --------------------- ###
+    print("### --------------------- Part II - Calculate steady states before perutbation (bp) and check if the feedback and no-feedback systems reach the same steady states (ss) --------------------- ###")
 
     #C_ss = sol_FB.y[2][-1]
     #W_ss = solve_ivp(system_with_feedback, t_span, y0, args=(mu_U, mu_W, current_mu_Y_value, gamma, gamma_U, gamma_W, eta_plus, eta_0, eta_minus, gamma_Y), t_eval=t_eval)
 
     args_FB = [mu_U, mu_W, current_mu_Y_value, gamma, gamma_U, gamma_W, eta_plus, eta_0, eta_minus, gamma_Y]
     extra_args_NF = [mu_Ystar, gamma_Ystar]
-    Y_values_FB_system, Y_values_NF_system, U_ss, W_ss, C_ss, Y_ss, Y_ss_NF, Ystar_ss_NF = get_ss(t_span, args_FB, extra_args_NF, y0, y0_NF, t_eval)
 
+    title = "Pre Perturbation"
+    Y_values_FB_system, Y_values_NF_system, U_ss, W_ss, C_ss, Y_ss, Y_ss_NF, Ystar_ss_NF = get_ss(t_span, args_FB, extra_args_NF, y0_init, y0_NF_init, t_eval, title)
+
+    # We do not pass on the threshold parameter here, because we will use the default value
     check_steady_state(Y_ss, Y_ss_NF)
 
     # Solve system without feedback
@@ -362,102 +421,27 @@ def main():
     y0 = [U_ss, W_ss, C_ss, Y_ss]
     y0_NF = [U_ss, W_ss, C_ss, Y_ss, Ystar_ss_NF]
 
-    get_ss(t_span, args_FB, extra_args_NF, y0, y0_NF, t_eval)
+    title = "at Steady State"
+    Y_values_FB_system, Y_values_NF_system, U_ss, W_ss, C_ss, Y_ss, Y_ss_NF, Ystar_ss_NF = get_ss(t_span, args_FB, extra_args_NF, y0, y0_NF, t_eval, title)
+    ss_threshold = 0.999
+    check_steady_state(Y_ss, Y_ss_NF, ss_threshold)
     
-
-
-    #title = None
-
-
-
-    """ STILL TO IMPLEMENT IN FUNTIONS
-    # Now we solve again, but using the steady state values as the initial conditions
-
-    # Solve ODEs system with feedback
-    sol_FB = solve_ivp(system_with_feedback, t_span, steady_state_conditions, args=(mu_U, mu_W, current_mu_Y_value, gamma, gamma_U, gamma_W, eta_plus, eta_0, eta_minus, gamma_Y), t_eval=t_eval)
-
-    Ystar_ss = Y_ss
-    #steady_state_conditions_NF = steady_state_conditions.append(Ystar_ss)
-
-
-    # Solve system without feedback
-    sol_NF = solve_ivp(system_without_feedback, t_span, steady_state_conditions_NF, args=(mu_U, mu_W, current_mu_Y_value, gamma, gamma_U, gamma_W, eta_plus, eta_0, eta_minus, gamma_Y, mu_Ystar, gamma_Ystar, W_ss), t_eval=t_eval)
-
-
-    Y_values_FB_system = sol_FB.y[3]
-    Y_values_NF_system = sol_NF.y[3]
-
-
-
-    title_ss = "steady state"
-    print("We will plot now")
-    get_concentration_plot(sol_FB, sol_NF, title_ss)
-    """
-  
+    # Store before perturbation (bp) steady state values
+    Y_ss_bp = Y_ss
+    Y_ss_bp_NF = Y_ss_NF
 
 
 
 
-    # Now we apply a perturbation and calculate again
 
-    #mu_Y_perturbation = 0.5
-    #current_mu_Y_value = mu_Y_perturbation
+    ### --------------------- Part III - Calculate steady states post perutbation (pp) and calculate CoRa value --------------------- ###
+    print("### --------------------- Part III - Calculate steady states post perutbation (pp) and calculate CoRa value --------------------- ###")
 
+    # Use updated steady state (ss) values as new initial conditions
+    y0 = [U_ss, W_ss, C_ss, Y_ss]
+    y0_NF = [U_ss, W_ss, C_ss, Y_ss, Ystar_ss_NF]
 
-
-    # Solve ODEs system with feedback
-    #sol_FB = solve_ivp(system_with_feedback, t_span, steady_state_conditions, args=(mu_U, mu_W, current_mu_Y_value, gamma, gamma_U, gamma_W, eta_plus, eta_0, eta_minus, gamma_Y), t_eval=t_eval)
-
-    #Ystar_ss = Y_ss
-    #steady_state_conditions_NF = steady_state_conditions.append(Ystar_ss)
-    #steady_state_conditions_NF = [U_ss, W_ss, C_ss, Y_ss, Ystar_ss]
-    #print("steady state conditions NF are: {}".format(steady_state_conditions_NF))
-
-    # Solve system without feedback
-    #sol_NF = solve_ivp(system_without_feedback, t_span, steady_state_conditions_NF, args=(mu_U, mu_W, current_mu_Y_value, gamma, gamma_U, gamma_W, eta_plus, eta_0, eta_minus, gamma_Y, mu_Ystar, gamma_Ystar, W_ss), t_eval=t_eval)
-
-
-    #Y_values_FB_system = sol_FB.y[3]
-    #Y_values_NF_system = sol_NF.y[3]
-
-
-
-    #title_after_perturbation = "after perturbation"
-    #print("We will plot now")
-    #get_concentration_plot(sol_FB, sol_NF, title_after_perturbation)
-
-
-
-
-    # Get the steady state values post perturbation (pp) by selecting the final value of the investigated range. Make sure that the time span is long enough!!
-    #print(sol_FB.y[1][-1])
-    #U_ss_pp = sol_FB.y[0][-1]
-    #W_ss_pp = sol_FB.y[1][-1]
-    #C_ss_pp = sol_FB.y[2][-1]
-    #Y_ss_pp = sol_FB.y[3][-1]
-
-    #print(sol_NF.y[1][-1])
-    #U_ss_pp_NF = sol_NF.y[0][-1]
-    #W_ss_pp_NF = sol_NF.y[1][-1]
-    #C_ss_pp_NF = sol_NF.y[2][-1]
-    #Y_ss_pp_NF = sol_NF.y[3][-1]
-
-    # Calculate and print CoRa point
-    #CoRa_point = calc_CoRa_point(Y_ss, Y_ss_NF, Y_ss_pp, Y_ss_pp_NF)
-    #print("The CoRa value calculated for the current system is {}".format(CoRa_point))
-
-
-
-    #t_span = (0, 50000)  # from t=0 to t=10
-    #t_eval = np.linspace(t_span[0], t_span[1], 50000)
-
-    #perturbations_set = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-    #perturbation_span = (0.1, 1)
-    #perturbations_set = np.linspace(perturbation_span[0], perturbation_span[1], 91)
-    
-    
-    """ STILL TO IMPLEMENT IN FUNTIONS
-    CoRa_points_list = []
+    #CoRa_points_list = []
 
     # Calculate and show final time point
     current_time = datetime.datetime.now()
@@ -468,111 +452,123 @@ def main():
     mu_after_perturbation = perturbation * mu_Y
     current_mu_Y_value = mu_after_perturbation
 
-    # Solve ODE system with and without feedback after applying the current perturbation
-    sol_FB = solve_ivp(system_with_feedback, t_span, steady_state_conditions, args=(mu_U, mu_W, current_mu_Y_value, gamma, gamma_U, gamma_W, eta_plus, eta_0, eta_minus, gamma_Y), t_eval=t_eval)
-    sol_NF = solve_ivp(system_without_feedback, t_span, steady_state_conditions_NF, args=(mu_U, mu_W, current_mu_Y_value, gamma, gamma_U, gamma_W, eta_plus, eta_0, eta_minus, gamma_Y, mu_Ystar, gamma_Ystar, W_ss), t_eval=t_eval)
-    
-    # Extract new (post perturbation) steady state values
-    Y_ss_pp = sol_FB.y[3][-1]
-    Y_ss_pp_NF = sol_NF.y[3][-1]
+    # Replace mu_Y parameter value by the perturbed mu_Y value
+    position = 2            # The position of "current_mu_Y_value" in the parameter set is 3rd, hence 2
+    args_FB[position] = current_mu_Y_value
+    print("The arguments (FB system only) we will pass on to the get_ss() function are: {} !!!!!!!!!!!!!!".format(args_FB))
 
-    # Plot concentration graphs (to check if steady state was reached)
-    title_after_perturbation = "after perturbation of {}".format(current_mu_Y_value)
-    print(title_after_perturbation)
-    get_concentration_plot(sol_FB, sol_NF, title_after_perturbation)
+    title = "after Perturbation"
+    Y_values_FB_system, Y_values_NF_system, U_ss, W_ss, C_ss, Y_ss, Y_ss_NF, Ystar_ss_NF = get_ss(t_span, args_FB, extra_args_NF, y0, y0_NF, t_eval, title)
+    ss_threshold = 0.999
+    check_steady_state(Y_ss, Y_ss_NF, ss_threshold)         # Now the steady states don't necessarily match, because it is after perturbation
 
-    # Calculate CoRa point
-    CoRa_point = calc_CoRa_point(Y_ss, Y_ss_NF, Y_ss_pp, Y_ss_pp_NF)
-    CoRa_points_list.append(CoRa_point)
-    print("The CoRa value calculated for the current system is {} and has been added to the list".format(CoRa_point))
+    # Store new (post perturbation) steady state values
+    Y_ss_pp = Y_ss
+    Y_ss_pp_NF = Y_ss_NF
+
+    print("*******************************************************************************************We will now calculate a test CoRa point")
+    print("The input values are Y_ss: {}    ;   Y_ss_NF: {}     ;   Y_ss_pp: {}  ;   Y_ss_pp_NF: {}".format(Y_ss, Y_ss_NF, Y_ss_pp, Y_ss_pp_NF))
+    CoRa_test_point = calc_CoRa_point(Y_ss, Y_ss_NF, Y_ss_pp, Y_ss_pp_NF)
+    print("A single CoRa point has been calculated: {} -----CoRa point--------------CoRa point------------CoRa point-----".format(CoRa_test_point))
+
+
+
+
+
+    ### --------------------- Part IV - Vary parameter and calculate CoRa line --------------------- ###
+    print("### --------------------- Part IV - Vary parameter and calculate CoRa line --------------------- ###")
+
+    # Set list of different synthesis rate using log scale
+    #mu_Y_values = np.logspace(0.01, 10000, 10)
+    #mu_Y_values = [0.005, 0.01, 0.1, 1, 10, 100, 1000]
+    mu_Y_values = [0.12, 0.122, 0.124, 0.125, 0.126, 0.128, 0.13]
+    #mu_Y_values = [0.125, 0.125,0.125, 0.125, 0.125]
+
+    CoRa_points_list = []
+    mu_Y_values_list = []
+
+    for mu_Y_value in mu_Y_values:
+
+        current_mu_Y_value = mu_Y_value
+
+        print("NEXT ITERATION IN LOOP ********************************************************")
+        print("The current mu_Y_value in the loop is {}".format(current_mu_Y_value))
+
+        print("The current mu_Y_value in the loop --- after perturbation --- is {}".format(current_mu_Y_value))
+        title = ("after Perturbation_{}".format(current_mu_Y_value))
+
+        args_FB = [mu_U, mu_W, current_mu_Y_value, gamma, gamma_U, gamma_W, eta_plus, eta_0, eta_minus, gamma_Y]
+        extra_args_NF = [mu_Ystar, gamma_Ystar]
+
+        position = 2    # Already defined earlier, but for clarity we will repeat here
+        args_FB[position] = current_mu_Y_value
+        print("The arguments (FB system only) we will pass on to the get_ss() function are: {} !!!!!!!!!!!!!!".format(args_FB))
+
+        #print(y0_init)
+        #print(y0_NF_init)
+        Y_values_FB_system, Y_values_NF_system, U_ss, W_ss, C_ss, Y_ss, Y_ss_NF, Ystar_ss_NF = get_ss(t_span, args_FB, extra_args_NF, y0_init, y0_NF_init, t_eval, title)
+        ss_threshold = 0.9
+        
+        steady_state_found = check_steady_state(Y_ss, Y_ss_NF, ss_threshold)
+
+        
+        title = ("at steady state {}".format(current_mu_Y_value))
+        Y_values_FB_system, Y_values_NF_system, U_ss, W_ss, C_ss, Y_ss, Y_ss_NF, Ystar_ss_NF = get_ss(t_span, args_FB, extra_args_NF, y0, y0_NF, t_eval, title)
+        ss_threshold = 0.999
+        steady_state_found = check_steady_state(Y_ss, Y_ss_NF, ss_threshold)
+        
+        # Store before perturbation (bp) steady state values
+        Y_ss_bp = Y_ss
+        Y_ss_bp_NF = Y_ss_NF
+
+
+
+        # Set the new mu value after perturbation
+        perturbation = 1.05
+        mu_after_perturbation = perturbation * mu_Y_value
+        current_mu_Y_value = mu_after_perturbation
+
+        # Replace mu_Y parameter value by the perturbed mu_Y value
+        position = 2            # The position of "current_mu_Y_value" in the parameter set is 3rd, hence 2
+        args_FB[position] = current_mu_Y_value
+
+
+        title = ("after Perturbation {}".format(current_mu_Y_value))
+        Y_values_FB_system, Y_values_NF_system, U_ss, W_ss, C_ss, Y_ss, Y_ss_NF, Ystar_ss_NF = get_ss(t_span, args_FB, extra_args_NF, y0, y0_NF, t_eval, title)
+        ss_threshold = 0.999
+        check_steady_state(Y_ss, Y_ss_NF, ss_threshold)
+
+        # Store new (post perturbation) steady state values
+        Y_ss_pp = Y_ss
+        Y_ss_pp_NF = Y_ss_NF
+        
+
+        print("We reached condition statement")
+        if steady_state_found == True:
+            print("CONDITION ACCEPTED, STEADY STATE PRESENT, CALCULATING CORA VALUE")
+            mu_Y_values_list.append(mu_Y_value)
+
+            # Store new (post perturbation) steady state values
+            Y_ss_pp = Y_ss
+            Y_ss_pp_NF = Y_ss_NF
+
+            # Calculate CoRa point
+            print("The Y_ss_bp value is {}".format(Y_ss_bp))
+            print("The Y_ss_bp_NF value is {}".format(Y_ss_bp_NF))
+            print("The Y_ss_pp value is {}".format(Y_ss_pp))
+            print("The Y_ss_pp_NF value is {}".format(Y_ss_pp_NF))
+            CoRa_point = calc_CoRa_point(Y_ss_bp, Y_ss_bp_NF, Y_ss_pp, Y_ss_pp_NF)
+            print("CoRa point FOUND!! it is {}".format(CoRa_point))
+            CoRa_points_list.append(CoRa_point)
+            print("The CoRa value calculated for the current system is {} and has been added to the list".format(CoRa_point))
 
     title_CoRa_plot = "CoRa values of antithetic feedback motif for multiple perturbations"
     #get_CoRa_plot(perturbations_set, CoRa_points_list, title_CoRa_plot)
-    get_CoRa_plot(perturbation, CoRa_points_list, title_CoRa_plot)
+    get_CoRa_plot(mu_Y_values_list, CoRa_points_list, title_CoRa_plot)
     # Calculate and show final time point
     current_time = datetime.datetime.now()
     print("Time end start of script: {}".format(current_time))
-
-
-    # Set list of different synthesis rate using log scale
-    mu_Y_values = np.logspace(-2, 2, 50)
-    CoRa_points_list = []
-
-    for mu_value in mu_Y_values:
-
-        # Set the new mu value
-        current_mu_Y_value = perturbation * mu_value
-
-        # Solve ODE system with and without feedback after applying the current perturbation
-        sol_FB = solve_ivp(system_with_feedback, t_span, steady_state_conditions, args=(mu_U, mu_W, current_mu_Y_value, gamma, gamma_U, gamma_W, eta_plus, eta_0, eta_minus, gamma_Y), t_eval=t_eval)
-        sol_NF = solve_ivp(system_without_feedback, t_span, steady_state_conditions_NF, args=(mu_U, mu_W, current_mu_Y_value, gamma, gamma_U, gamma_W, eta_plus, eta_0, eta_minus, gamma_Y, mu_Ystar, gamma_Ystar, W_ss), t_eval=t_eval)
-        
-        # Extract new (post perturbation) steady state values
-        Y_ss_pp = sol_FB.y[3][-1]
-        Y_ss_pp_NF = sol_NF.y[3][-1]
-
-        # Plot concentration graphs (to check if steady state was reached)
-        title_after_perturbation = "after perturbation of {} NEW".format(current_mu_Y_value)
-        print(title_after_perturbation)
-        get_concentration_plot(sol_FB, sol_NF, title_after_perturbation)
-
-        # Calculate CoRa point
-        CoRa_point = calc_CoRa_point(Y_ss, Y_ss_NF, Y_ss_pp, Y_ss_pp_NF)
-        CoRa_points_list.append(CoRa_point)
-        print("The CoRa value calculated for the current system is {} and has been added to the list".format(CoRa_point))
-
-    title_CoRa_plot = "CoRa values of antithetic feedback motif for multiple perturbations NEW"
-    get_CoRa_plot(mu_Y_values, CoRa_points_list, title_CoRa_plot)
-
-    # Calculate and show final time point
-    current_time = datetime.datetime.now()
-    print("Time end start of script: {}".format(current_time))
-    """
-
-
-
-
-"""
-    for perturbation in perturbations_set:
-        
-        # Set the new mu value
-        current_mu_Y_value = perturbation
-
-        # Solve ODE system with and without feedback after applying the current perturbation
-        sol_FB = solve_ivp(system_with_feedback, t_span, steady_state_conditions, args=(mu_U, mu_W, current_mu_Y_value, gamma, gamma_U, gamma_W, eta_plus, eta_0, eta_minus, gamma_Y), t_eval=t_eval)
-        sol_NF = solve_ivp(system_without_feedback, t_span, steady_state_conditions_NF, args=(mu_U, mu_W, current_mu_Y_value, gamma, gamma_U, gamma_W, eta_plus, eta_0, eta_minus, gamma_Y, mu_Ystar, gamma_Ystar, W_ss), t_eval=t_eval)
-        
-        # Extract new (post perturbation) steady state values
-        Y_ss_pp = sol_FB.y[3][-1]
-        Y_ss_pp_NF = sol_NF.y[3][-1]
-
-        # Plot concentration graphs (to check if steady state was reached)
-        title_after_perturbation = "after perturbation of {}".format(current_mu_Y_value)
-        print(title_after_perturbation)
-        get_concentration_plot(sol_FB, sol_NF, title_after_perturbation)
-
-        # Calculate CoRa point
-        CoRa_point = calc_CoRa_point(Y_ss, Y_ss_NF, Y_ss_pp, Y_ss_pp_NF)
-        CoRa_points_list.append(CoRa_point)
-        print("The CoRa value calculated for the current system is {} and has been added to the list".format(CoRa_point))
-
-    title_CoRa_plot = "CoRa values of antithetic feedback motif for multiple perturbations"
-    get_CoRa_plot(perturbations_set, CoRa_points_list, title_CoRa_plot)
-
-    # Calculate and show final time point
-    current_time = datetime.datetime.now()
-    print("Time end start of script: {}".format(current_time))
-"""
-
-
-
-
-
-
-
+    
 
 if __name__ == "__main__":
     main()
-
-
-
