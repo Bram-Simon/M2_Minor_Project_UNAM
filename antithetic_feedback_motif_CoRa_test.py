@@ -1,5 +1,20 @@
 #!/usr/bin/env python3
 
+"""
+This script implements the Control Ratio (CoRa) method on the antithetic feedback motif (ATF), a simple model system with negative feedback control.
+
+The script performs the following tasks:
+
+-	Creating a model that includes feedback and the locally analogous no-feedback model.
+-	Plotting the concentrations of different molecular species over time, to observe what happens in the systems and to check our model.
+-	Calculating a CoRa point.
+-	Varying a parameter in the model to explore the parameter space.
+-	Calculating a CoRa line (get_CoRa_plot()).
+
+US English
+"""
+
+
 import numpy as np
 from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
