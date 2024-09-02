@@ -1,0 +1,8 @@
+
+The RNA-seq data that is used in this project has not yet been published and is confidential. However, the data is safely stored at the Cancer Genetics and Bioinformatics Laboratory of 
+the International Laboratory of Human Genome Research (LIIGH), which is part of the Universidad Nacional Autónoma de México.
+
+Those who wish to reproduce the content of the master thesis can contact the following people:
+
+Bram van Haastrecht - bramvanhaastrecht@gmail.com
+C. Daniela Robles-Espinoza - drobles@liigh.unam.mx

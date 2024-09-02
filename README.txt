@@ -1,0 +1,2 @@
+To enable reproduction of the results shown in the thesis "A MAPK Pathway Model to Investigate the Origins of Acral Lentigious Melanoma" by Bram van Haastrecht, the
+necessary scripts and further explanation are stored in the directory "scripts_for_thesis".

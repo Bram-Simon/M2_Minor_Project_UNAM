@@ -1,0 +1,8 @@
+
+Those who wish to reproduce the results shown in the thesis "A MAPK Pathway Model to Investigate the Origins of Acral Lentigious Melanoma" by Bram van Haastrecht can follow the 
+following steps:
+
+- Request the RNA-seq data (see information_on_data_availability.txt).
+- Create a conda virtual environment (VE) using the environment.yml file that is provided in the same directory as where the file you are reading is located.
+- Execute the notebook get_steady_states_MAPK.ipynb to obtain Figure 7, and Table 5 from the thesis.
+- Execute the notebook differential_expression.ipynb to obtain Figure 8 from the thesis.
